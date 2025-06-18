@@ -192,3 +192,29 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# === Node Modules ===
+node_modules/
+
+# === VS Code Build Artifacts ===
+out/
+.vscode-test/
+
+# === VS Code Local Settings ===
+.vscode/
+
+# === Logs and Cache ===
+*.log
+*.tsbuildinfo
+
+# === Dependency Lock (optional) ===
+package-lock.json
+
+# === System Files ===
+.DS_Store
+Thumbs.db
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
