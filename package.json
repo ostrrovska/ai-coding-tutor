@@ -11,14 +11,27 @@
   ],
   "activationEvents": [],
   "main": "./out/extension.js",
+
   "contributes": {
-    "commands": [
+  "viewsContainers": {
+    "activitybar": [
       {
-        "command": "deepchat.helloWorld",
-        "title": "Hello World"
+        "id": "deepchat-sidebar",
+        "title": "DeepChat",
+        "icon": "resources/icon.png"
       }
     ]
   },
+  "views": {
+    "deepchat-sidebar": [
+      {
+        "id": "deepchatView",
+        "name": "DeepSeek Chat",
+        "icon": "resources/icon.png"
+      }
+    ]
+  }
+},
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
