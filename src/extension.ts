@@ -2,21 +2,25 @@ import * as vscode from 'vscode';
 import ollama from 'ollama';
 
 export function activate(context: vscode.ExtensionContext) {
-	const provider = new DeepChatViewProvider(context);
-	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider('deepchatView', provider)
-	);
+	console.log('✅ Extension activated');
+	try {
+		const provider = new DeepChatViewProvider(context);
+		context.subscriptions.push(
+			vscode.window.registerWebviewViewProvider('deepchatView', provider)
+		);
+	} catch (err) {
+		console.error('❌ Error in activate:', err);
+	}
 }
+
 
 class DeepChatViewProvider implements vscode.WebviewViewProvider {
 	constructor(private readonly context: vscode.ExtensionContext) {}
-
-
 	resolveWebviewView(webviewView: vscode.WebviewView) {
+		console.log('📦 resolveWebviewView called');
 		webviewView.webview.options = {
 			enableScripts: true
 		};
-		vscode
 
 		webviewView.webview.html = getWebviewContent();
 
@@ -42,6 +46,7 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
 			}
 		});
 	}
+
 }
 
 function getWebviewContent(): string {

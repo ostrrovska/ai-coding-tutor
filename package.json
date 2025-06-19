@@ -9,15 +9,15 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+  ],
   "main": "./out/extension.js",
-
   "contributes": {
   "viewsContainers": {
     "activitybar": [
       {
         "id": "deepchat-sidebar",
-        "title": "DeepChat",
+        "title": "DeepSeek Chat",
         "icon": "resources/icon.png"
       }
     ]
@@ -25,13 +25,13 @@
   "views": {
     "deepchat-sidebar": [
       {
+        "type": "webview",
         "id": "deepchatView",
         "name": "DeepSeek Chat",
         "icon": "resources/icon.png"
       }
     ]
-  }
-},
+  }},
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
@@ -52,6 +52,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "ollama": "^0.5.16"
+    "ollama": "^0.5.16",
+    "punycode": "^2.3.1"
   }
 }
