@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import ollama from 'ollama';
 import { insertCodeToActiveEditor } from './codeUtils';
+import { getCodeFromActiveEditor } from './codeUtils';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('✅ Extension activated');
@@ -33,6 +34,9 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
                 case 'insertCode':
                     await insertCodeToActiveEditor(message.code);
                     break;
+                case 'checkCode':
+                    await this.handleCheckCodeCommand(webviewView);
+                    break;
             }
         });
     }
@@ -63,6 +67,45 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
             });
         }
     }
+
+    private async handleCheckCodeCommand(webviewView: vscode.WebviewView) {
+        try {
+            const codeToCheck = await getCodeFromActiveEditor();
+            
+            if (!codeToCheck) {
+                webviewView.webview.postMessage({ 
+                    command: 'chatResponse', 
+                    text: 'No code found to check',
+                    hasCode: false
+                });
+                return;
+            }
+
+            const prompt = `Please review the following code and provide feedback:\n\n${codeToCheck}\n\n`;
+            
+            const streamResponse = await ollama.chat({
+                model: 'deepseek-coder:6.7b',
+                messages: [{ role: 'user', content: prompt }],
+                stream: true
+            });
+
+            let responseText = '';
+            for await (const part of streamResponse) {
+                responseText += part.message.content;
+                webviewView.webview.postMessage({ 
+                    command: 'chatResponse', 
+                    text: responseText,
+                    hasCode: containsCode(responseText)
+                });
+            }
+        } catch (err) {
+            webviewView.webview.postMessage({ 
+                command: 'chatResponse', 
+                text: `Error checking code: ${err}`,
+                hasCode: false
+            });
+        }
+    }
 }
 
 function containsCode(text: string): boolean {
@@ -71,7 +114,7 @@ function containsCode(text: string): boolean {
 }
 
 function getWebviewContent(): string {
-    return `<!DOCTYPE html>
+    return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -111,18 +154,39 @@ function getWebviewContent(): string {
         .insert-btn:hover {
             background: #006cbd;
         }
+        .check-code-btn-container {
+            text-align: right;
+            margin-bottom: 1rem;
+        }
+        .check-code-btn {
+            background:rgb(6, 255, 10);
+            color: white;
+            border: none;
+            border-radius: 2px;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+        }
+        .check-code-btn:hover {
+            background: rgb(5, 204, 8);
+        }
+        
     </style>
 </head>
 <body>
     <h2>Deep VS Code Extension</h2>
     <textarea id="prompt" rows="3" placeholder="Ask something..."></textarea><br />
     <button id="askBtn">Ask</button>
+    <button id="checkCodeBtn">Check Code</button>
     <div id="response"></div>
     <script>
         const vscode = acquireVsCodeApi();
         document.getElementById('askBtn').addEventListener('click', () => {
             const text = document.getElementById('prompt').value;
             vscode.postMessage({ command: 'chat', text });
+        });
+
+        document.getElementById('checkCodeBtn').addEventListener('click', () => {
+            vscode.postMessage({ command: 'checkCode' });
         });
 
         window.addEventListener('message', event => {

@@ -12,3 +12,20 @@ export async function insertCodeToActiveEditor(code: string) {
         editBuilder.insert(position, code);
     });
 }
+
+export async function getCodeFromActiveEditor(): Promise<string> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage('No active text editor found');
+        return '';
+    }
+
+    const document = editor.document;
+    const selection = editor.selection;
+
+    if (selection.isEmpty) {
+        return document.getText();
+    } else {
+        return document.getText(selection);
+    }
+}
