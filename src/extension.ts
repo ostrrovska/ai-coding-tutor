@@ -16,6 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 class DeepChatViewProvider implements vscode.WebviewViewProvider {
+    private abortController: AbortController | null = null;
     constructor(private readonly context: vscode.ExtensionContext) {}
     
     resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -37,12 +38,16 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
                 case 'checkCode':
                     await this.handleCheckCodeCommand(webviewView);
                     break;
+                case 'cancel':
+                    this.handleCancelCommand(webviewView);
+                    break;
             }
         });
     }
 
     private async handleChatCommand(webviewView: vscode.WebviewView, userPrompt: string) {
         let responseText = '';
+        this.abortController = new AbortController();
 
         try {
             const streamResponse = await ollama.chat({
@@ -52,6 +57,9 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
             });
 
             for await (const part of streamResponse) {
+                if (this.abortController.signal.aborted) {  
+                    break;
+                }
                 responseText += part.message.content;
                 webviewView.webview.postMessage({ 
                     command: 'chatResponse', 
@@ -106,6 +114,18 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
             });
         }
     }
+
+    private handleCancelCommand(webviewView: vscode.WebviewView) {
+    if (this.abortController) {
+        this.abortController.abort();
+        webviewView.webview.postMessage({
+            command: 'chatResponse',
+            text: 'Generation cancelled',
+            hasCode: false,
+            isStreaming: false
+        });
+    }
+}
 }
 
 function containsCode(text: string): boolean {
@@ -169,6 +189,17 @@ function getWebviewContent(): string {
         .check-code-btn:hover {
             background: rgb(5, 204, 8);
         }
+        .cancel-btn {
+            background: #ff0000;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+        }
+        .cancel-btn:hover {
+            background: #cc0000;
+        }
         
     </style>
 </head>
@@ -177,6 +208,7 @@ function getWebviewContent(): string {
     <textarea id="prompt" rows="3" placeholder="Ask something..."></textarea><br />
     <button id="askBtn">Ask</button>
     <button id="checkCodeBtn">Check Code</button>
+    <button class="cancel-btn" id="cancelBtn">Cancel</button>
     <div id="response"></div>
     <script>
         const vscode = acquireVsCodeApi();
@@ -187,6 +219,10 @@ function getWebviewContent(): string {
 
         document.getElementById('checkCodeBtn').addEventListener('click', () => {
             vscode.postMessage({ command: 'checkCode' });
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            vscode.postMessage({ command: 'cancel' });
         });
 
         window.addEventListener('message', event => {
