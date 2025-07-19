@@ -77,43 +77,59 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async handleCheckCodeCommand(webviewView: vscode.WebviewView) {
-        try {
-            const codeToCheck = await getCodeFromActiveEditor();
-            
-            if (!codeToCheck) {
-                webviewView.webview.postMessage({ 
-                    command: 'chatResponse', 
-                    text: 'No code found to check',
-                    hasCode: false
-                });
-                return;
-            }
+    try {
+        this.abortController = new AbortController();
+        const codeToCheck = await getCodeFromActiveEditor();
 
-            const prompt = `Please review the following code and provide feedback:\n\n${codeToCheck}\n\n`;
-            
-            const streamResponse = await ollama.chat({
-                model: 'deepseek-coder:6.7b',
-                messages: [{ role: 'user', content: prompt }],
-                stream: true
-            });
-
-            let responseText = '';
-            for await (const part of streamResponse) {
-                responseText += part.message.content;
-                webviewView.webview.postMessage({ 
-                    command: 'chatResponse', 
-                    text: responseText,
-                    hasCode: containsCode(responseText)
-                });
-            }
-        } catch (err) {
-            webviewView.webview.postMessage({ 
-                command: 'chatResponse', 
-                text: `Error checking code: ${err}`,
+        if (!codeToCheck) {
+            webviewView.webview.postMessage({
+                command: 'chatResponse',
+                text: 'No code found to check',
                 hasCode: false
             });
+            return;
         }
+
+        const prompt = 'Please check the following code for errors:\n\n' + codeToCheck;
+
+        const streamResponse = await ollama.chat({
+            model: 'deepseek-coder:6.7b',
+            messages: [{ role: 'user', content: prompt }],
+            stream: true
+        });
+
+        let responseText = '';
+        const iterator = streamResponse[Symbol.asyncIterator]();
+
+        while (true) {
+            if (this.abortController.signal.aborted) {
+                webviewView.webview.postMessage({
+                    command: 'chatResponse',
+                    hasCode: false,
+                    isStreaming: false
+                });
+                break;
+            }
+
+            const { value, done } = await iterator.next();
+            if (done) break;
+            responseText += value.message.content;
+
+            webviewView.webview.postMessage({
+                command: 'chatResponse',
+                text: responseText,
+                hasCode: containsCode(responseText),
+            });
+        }
+    } catch (err) {
+        webviewView.webview.postMessage({
+            command: 'chatResponse',
+            text: `Error checking code: ${err}`,
+            hasCode: false,
+        });
     }
+}
+
 
     private handleCancelCommand(webviewView: vscode.WebviewView) {
     if (this.abortController) {
@@ -206,8 +222,8 @@ function getWebviewContent(): string {
 <body>
     <h2>Deep VS Code Extension</h2>
     <textarea id="prompt" rows="3" placeholder="Ask something..."></textarea><br />
-    <button id="askBtn">Ask</button>
-    <button id="checkCodeBtn">Check Code</button>
+    <button class="insert-btn" id="askBtn">Ask</button>
+    <button class="check-code-btn" id="checkCodeBtn">Check Code</button>
     <button class="cancel-btn" id="cancelBtn">Cancel</button>
     <div id="response"></div>
     <script>
