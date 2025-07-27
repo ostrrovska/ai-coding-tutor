@@ -106,7 +106,8 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
                 webviewView.webview.postMessage({
                     command: 'chatResponse',
                     hasCode: false,
-                    isStreaming: false
+                    isStreaming: false,
+                    text: 'Generation cancelled'
                 });
                 break;
             }
@@ -119,6 +120,7 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
                 command: 'chatResponse',
                 text: responseText,
                 hasCode: containsCode(responseText),
+                
             });
         }
     } catch (err) {
