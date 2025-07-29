@@ -38,9 +38,6 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
                 case 'checkCode':
                     await this.handleCheckCodeCommand(webviewView);
                     break;
-                case 'cancel':
-                    this.handleCancelCommand(webviewView);
-                    break;
             }
         });
     }
@@ -52,7 +49,10 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
         try {
             const streamResponse = await ollama.chat({
                 model: 'deepseek-coder:6.7b',
-                messages: [{ role: 'user', content: userPrompt }],
+                messages: [
+                    { role: 'system', content: 'You are a highly skilled Python tutor and mentor who helps users write clear, efficient, and idiomatic Python code. Your goal is to help me improve my understanding of Python by reviewing my code, suggesting improvements, and explaining advanced concepts step by step. When I send you code or a problem description, I want you to:Explain the code or problem in simple terms.Identify and explain any potential issues or inefficiencies.Suggest improvements or alternative approaches, and explain why they are better.Refactor the code if needed.' },
+                    { role: 'user', content: userPrompt }
+                ],
                 stream: true
             });
 
@@ -94,7 +94,10 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
 
         const streamResponse = await ollama.chat({
             model: 'deepseek-coder:6.7b',
-            messages: [{ role: 'user', content: prompt }],
+            messages: [
+                { role: 'system', content: 'You are a highly skilled Python tutor and mentor who helps users write clear, efficient, and idiomatic Python code. Your goal is to help me improve my understanding of Python by reviewing my code, suggesting improvements, and explaining advanced concepts step by step. When I send you code or a problem description, I want you to:Explain the code or problem in simple terms.Identify and explain any potential issues or inefficiencies.Suggest improvements or alternative approaches, and explain why they are better.Refactor the code if needed.' },
+                { role: 'user', content: prompt }
+            ],
             stream: true
         });
 
@@ -128,19 +131,6 @@ class DeepChatViewProvider implements vscode.WebviewViewProvider {
             command: 'chatResponse',
             text: `Error checking code: ${err}`,
             hasCode: false,
-        });
-    }
-}
-
-
-    private handleCancelCommand(webviewView: vscode.WebviewView) {
-    if (this.abortController) {
-        this.abortController.abort();
-        webviewView.webview.postMessage({
-            command: 'chatResponse',
-            text: 'Generation cancelled',
-            hasCode: false,
-            isStreaming: false
         });
     }
 }
@@ -226,7 +216,6 @@ function getWebviewContent(): string {
     <textarea id="prompt" rows="3" placeholder="Ask something..."></textarea><br />
     <button class="insert-btn" id="askBtn">Ask</button>
     <button class="check-code-btn" id="checkCodeBtn">Check Code</button>
-    <button class="cancel-btn" id="cancelBtn">Cancel</button>
     <div id="response"></div>
     <script>
         const vscode = acquireVsCodeApi();
@@ -239,9 +228,6 @@ function getWebviewContent(): string {
             vscode.postMessage({ command: 'checkCode' });
         });
 
-        document.getElementById('cancelBtn').addEventListener('click', () => {
-            vscode.postMessage({ command: 'cancel' });
-        });
 
         window.addEventListener('message', event => {
             const { command, text, hasCode } = event.data;

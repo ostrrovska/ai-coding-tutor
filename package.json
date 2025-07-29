@@ -1,7 +1,8 @@
 {
-  "name": "deepchat",
-  "displayName": "deepchat",
-  "description": "",
+  "name": "deepchat-python-tutoring",
+  "displayName": "deepchat-python-tutoring",
+  "publisher": "KaterynaOstrovska", 
+  "description": "Python coding assistant",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.101.0"
